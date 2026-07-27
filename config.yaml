@@ -1,0 +1,76 @@
+# Central config for the player detection pipeline (classical + YOLO).
+# Edit values here rather than in the scripts. See config.py for the loader.
+
+paths:
+  empty_field: "empty_field.png"
+  mask: "mask3.png"          # extend this to cover bench/sideline area
+  video: "img/pesis_longer.mp4"
+  yolo_model: "yolov8s.pt"  # yolov8n/s/m/l -- bigger = more accurate, slower
+
+sampling:
+  detect_fps: 8              # how often to run detection (doesn't need full video fps)
+  bg_sample_fps: 1            # how often to feed a frame into the rolling background
+  bg_recompute_interval_s: 90 # how often to recompute the median background
+
+background_model:
+  max_frames: 180              # rolling buffer size for the median background
+
+foreground_detector:
+  # derived from real pixel samples on this field (see conversation history):
+  # clay ref ~ H8-10 S90-100 V155-185; player kit shifts H by 5-45, V drops 40-90
+  hue_shadow_tol: 6            # shadow hue stays within this of background hue
+  sat_shadow_tol: 25           # shadow saturation stays within this of background
+  v_ratio_low: 0.35            # shadow darkens V by at most this much (ratio)
+  v_ratio_high: 0.95
+  min_abs_diff: 18             # ignore near-zero noise
+
+shadow_checker:
+  shadow_ratio_thresh: 0.7     # box rejected if >= this fraction of its CHANGED
+                                # pixels are shadow-classified
+  min_changed_fraction: 0.05   # below this, not enough signal to judge -> keep
+
+size_filter:
+  # TODO: replace with your real calibration's world<->pixel height mapping;
+  # these two points (35px far / 185px near) are a rough linear stand-in
+  y_far: 200
+  h_far: 35
+  y_near: 1000
+  h_near: 185
+  tolerance: 0.5                # allowed fractional deviation from expected height
+  min_aspect: 0.15               # width/height lower bound
+  max_aspect: 1.15               # width/height upper bound (validated against a
+                                  # real wide-armed running pose at ~0.92)
+
+blob_extraction:
+  min_area: 15                   # px^2, drop connected components smaller than this
+
+mask:
+  alpha_threshold: 128           # threshold for load_removal_mask()
+
+tracker:
+  max_dist: 70                   # px, max centroid distance to associate a detection
+  max_missed: 8                  # frames a track can go undetected before being dropped
+
+team_classifier:
+  torso_top: 0.15                 # fraction of box height where torso band starts
+  torso_bottom: 0.55               # fraction of box height where torso band ends
+  min_pixels: 20                   # minimum clean foreground pixels needed to trust a sample
+  chroma_weight: 1.0
+  value_weight: 0.5
+  min_confidence_margin: 15.0      # gap needed between best/second-best role match to trust it
+
+yolo:
+  tile_size: 640
+  overlap: 0.25                  # fraction of tile_size overlapped between adjacent tiles
+  conf_thresh: 0.25
+  person_class_id: 0             # COCO class 0 = "person"
+  device: "cpu"
+  cross_tile_nms_iou: 0.4        # merges duplicate detections across tile boundaries
+  containment_thresh: 0.8        # suppress a box if this much of its area sits inside
+                                  # a higher-confidence box (fixes head-inside-torso etc.)
+  gpu_batch_size: 16              # max tile images per model.predict() forward pass in detect_batch()
+
+video_processing:
+  frame_stride: 500                 # process every Nth frame (60fps video, stride 5 -> 12 samples/s)
+  frame_batch_size: 8              # sampled frames accumulated before one detect_batch() call
+  out_prefix: "out/bbox_timeseries" # writes <out_prefix>_frames.parquet, _detections.parquet, _meta.json
