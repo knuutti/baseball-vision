@@ -1,0 +1,11 @@
+{
+  "video_path": "img/pesis_test.mp4",
+  "fps": 60.0,
+  "frame_stride": 5,
+  "frame_batch_size": 8,
+  "model_path": "yolov8s.pt",
+  "device": "cuda",
+  "conf_thresh": 0.25,
+  "tile_size": 640,
+  "overlap": 0.25
+}
