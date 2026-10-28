@@ -1,7 +1,7 @@
 """
 Visual sanity check: samples a handful of frames spread across a clip, runs
 YOLO detection + the labeled-data role classifier on each, and saves annotated
-overlay images so you can eyeball whether boxes and predicted roles look right
+overlay images for checking by eye whether boxes and predicted roles look right
 before scaling up to full-match processing.
 
 NOTE: this uses TiledPlayerDetector (YOLO) for box detection, not the classical
@@ -15,7 +15,7 @@ a YOLO-confirmed box, and (optionally) the shadow cross-check on that box --
 both much easier problems than full-frame detection.
 
 Run:
-    python visualize_predictions.py
+    python src/visualize_predictions.py
 """
 
 import json
@@ -41,7 +41,7 @@ ROLE_COLORS = {
 UNKNOWN_COLOR = (180, 180, 180)
 
 
-def load_classifier(labeled_samples_path="labeled_samples.json"):
+def load_classifier(labeled_samples_path="data/labeled_samples.json"):
     with open(labeled_samples_path) as f:
         raw = json.load(f)
     labeled_samples = [(role, tuple(feat)) for role, feat in raw]
@@ -150,5 +150,5 @@ def visualize(cfg, video_path, classifier, n_frames=6, output_dir="prediction_pr
 
 if __name__ == "__main__":
     cfg = load_config("config.yaml")
-    classifier = load_classifier("labeled_samples.json")
+    classifier = load_classifier("data/labeled_samples.json")
     visualize(cfg, cfg.paths.video, classifier, n_frames=6)

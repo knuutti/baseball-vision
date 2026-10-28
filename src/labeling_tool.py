@@ -4,9 +4,9 @@ Semi-supervised labeling tool.
 Runs YOLO detection + tracking over a sample of frames spread across the
 match, collects one aggregated color sample per track (not per frame --
 tracks already smooth over lighting noise, and there are far fewer tracks
-than frames), then shows you each track's torso crop one at a time and asks
-you to label it with a keypress. Output is a labeled_samples.json you can
-feed into build_prototypes_from_labeled_samples() or KNNRoleClassifier.
+than frames), then shows each track's player crop one at a time to be
+labelled with a keypress. Output is a labeled_samples.json that can be fed
+into build_prototypes_from_labeled_samples() or KNNRoleClassifier.
 
 NOTE: this uses TiledPlayerDetector (YOLO) for box detection, not the classical
 detect_players() background-subtraction pipeline used in an earlier version of
@@ -17,16 +17,15 @@ for the same fix and fuller rationale. The classical ForegroundDetector is
 still used here, but only for its narrower, proven job: extracting jersey
 color from within a YOLO-confirmed box.
 
-Run on your machine (needs a display -- this uses cv2.imshow, not something
-that works in a headless/server environment):
-    python labeling_tool.py
+Needs a display (uses cv2.imshow, so it does not work in a headless/server
+environment):
+    python src/labeling_tool.py
 
-Controls shown on screen: one key per role (configurable in config.yaml),
-'s' to skip (e.g. crop is ambiguous/occluded), 'q' to quit and save what
-you've labeled so far -- you don't need to finish the whole video in one run,
-just label as many tracks as you have patience for and rerun later to
-continue (already-labeled track crops are skipped on the next run, matched
-by track fingerprint -- see NOTE below on why this is approximate).
+Controls shown on screen: one key per role (role_keys in __main__), 's' to
+skip (e.g. crop is ambiguous/occluded), 'q' to quit and save the labels
+collected so far. Labelling can be split across several runs: new labels are
+appended to an existing labeled_samples.json. Already-labelled tracks are not
+remembered, so a rerun shows the same tracks again.
 """
 
 import json
@@ -165,12 +164,12 @@ def sample_tracks_across_match(cfg, video_path, sample_seconds_stride=20, window
     return tracks
 
 
-def run_labeling_ui(tracks, role_keys, output_path="labeled_samples.json"):
+def run_labeling_ui(tracks, role_keys, output_path="data/labeled_samples.json"):
     """
     role_keys: {"a": "team_a", "b": "team_b", "r": "referee", "m": "misc"}
     Shows each track's crop, waits for a key in role_keys (or 's' to skip,
-    'q' to quit early). Appends to output_path if it already exists, so you
-    can label in multiple sittings without losing earlier work.
+    'q' to quit early). Appends to output_path if it already exists, so labelling
+    can be split across multiple sessions without losing earlier work.
     """
     labeled = []
     if os.path.exists(output_path):
@@ -216,4 +215,4 @@ if __name__ == "__main__":
     tracks = sample_tracks_across_match(cfg, cfg.paths.video, sample_seconds_stride=20, window_seconds=3)
     print(f"collected {len(tracks)} labelable tracks")
 
-    run_labeling_ui(tracks, role_keys, output_path="labeled_samples.json")
+    run_labeling_ui(tracks, role_keys, output_path="data/labeled_samples.json")

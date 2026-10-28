@@ -1,7 +1,7 @@
 """
 Team / role classification via jersey color.
 
-Approach (see conversation for rationale):
+Approach:
   1. Sample color from the torso region of each detection, restricted to real
      foreground pixels (reusing ForegroundDetector's shadow/background test)
      so background clay bleeding in at the box edges doesn't wash out the
@@ -71,7 +71,7 @@ def extract_jersey_color(frame_bgr, bg_bgr, box, fg_detector,
 
     torso_top/torso_bottom: fraction of box height defining the torso band
         (skips the head near the top and legs/shorts-color-mixing near the
-        bottom -- tune these if your camera angle crops players differently).
+        bottom -- tune these if the camera angle crops players differently).
 
     Unlike an earlier version of this function, low-saturation pixels are NOT
     excluded -- they're exactly what should register as "near black/white/gray"
@@ -206,7 +206,7 @@ def build_prototypes_from_labeled_samples(labeled_samples):
     build_prototypes_from_crops() -- drop-in replacement for ColorRoleClassifier.
     More labeled samples per role = a more robust centroid, and unlike hand
     picking 2-3 crops, this naturally averages over the lighting variation
-    your match actually contains (backlit, side-lit, partial shade, etc.).
+    the match actually contains (backlit, side-lit, partial shade, etc.).
     """
     by_role = {}
     for role, features in labeled_samples:
@@ -229,7 +229,7 @@ class KNNRoleClassifier:
 
     Requires meaningfully more labeled data than the centroid approach to be
     reliable (rule of thumb: at least ~15-20 labeled samples per role), since
-    it has no notion of "role" beyond the labeled examples you give it -- the
+    it has no notion of "role" beyond the labeled examples it is given -- the
     centroid approach can work with just a handful of hand-picked crops.
     """
 

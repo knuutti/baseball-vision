@@ -7,21 +7,20 @@ Pipeline stages:
                                  (sun angle, trees, stands) get absorbed automatically.
   2. ForegroundDetector       - HSV difference + chromaticity-based shadow suppression.
                                  Thresholds below were derived from real pixel samples
-                                 taken from your empty_field.png / game_frame_*.png:
+                                 taken from empty_field.png / game_frame_*.png:
                                    clay (ref):   H ~ 8-10,  S ~ 90-100, V ~ 155-185
                                    player kit:   H shifts +5 to +45,   V drops 40-90
                                  i.e. shadow keeps hue/sat close to background and only
                                  drops V moderately; a real player deviates in hue too.
   3. PerspectiveSizeFilter    - rejects/accepts blobs based on expected player pixel
-                                 height at that image row, using YOUR calibration.
+                                 height at that image row (linear placeholder for now).
   4. BlobExtractor            - connected components -> bounding boxes.
   5. CentroidTracker          - greedy nearest-neighbor association across frames +
                                  linear interpolation to fill short gaps.
 
-You already have camera calibration -- plug your real world<->pixel mapping into
-PerspectiveSizeFilter.expected_height_px() instead of the placeholder linear
-interpolation (built from your two known points: 35px far / 185px near) so this
-step is only a temporary stand-in.
+PerspectiveSizeFilter.expected_height_px() is a temporary stand-in: a linear
+interpolation between two reference heights (35px far / 185px near). It should
+be replaced by a world<->pixel mapping from the field calibration.
 """
 
 import cv2
@@ -58,7 +57,7 @@ class RollingBackgroundModel:
     """
 
     def __init__(self, initial_bg, max_frames=180):
-        # initial_bg: HxWx3 uint8, e.g. your empty_field.png (BGR, alpha stripped)
+        # initial_bg: HxWx3 uint8, e.g. empty_field.png (BGR, alpha stripped)
         self.buffer = deque(maxlen=max_frames)
         self.buffer.append(initial_bg.astype(np.uint8))
         self.current_bg = initial_bg.astype(np.uint8)
@@ -98,7 +97,7 @@ class ForegroundDetector:
     def detect(self, frame_bgr, bg_bgr, valid_mask):
         """
         frame_bgr, bg_bgr: HxWx3 uint8
-        valid_mask: HxW bool (from your alpha channel, e.g. alpha > 200)
+        valid_mask: HxW bool (e.g. from the reference image's alpha channel, alpha > 200)
         Returns: HxW uint8 mask (255 = foreground / player candidate)
         """
         foreground, _, _ = self.detect_detailed(frame_bgr, bg_bgr, valid_mask)
@@ -141,16 +140,16 @@ class ForegroundDetector:
 
 
 # ----------------------------------------------------------------------------
-# 3. Perspective-aware size filter (placeholder -- replace with your calibration)
+# 3. Perspective-aware size filter (placeholder until the calibration is wired in)
 # ----------------------------------------------------------------------------
 class PerspectiveSizeFilter:
     """
     Rejects blobs whose height is implausible for their row in the image, and/or
-    whose width:height aspect ratio doesn't look like a person. Replace
-    expected_height_px() with a lookup through your real camera calibration
-    (pixel -> world -> back to expected player height in pixels). The two-point
-    linear version here is only a rough stand-in using the numbers you gave:
-    35px tall at the far end, 185px tall at the near end.
+    whose width:height aspect ratio doesn't look like a person.
+    expected_height_px() should eventually be a lookup through the camera
+    calibration (pixel -> world -> back to expected player height in pixels).
+    The two-point linear version here is only a rough stand-in using two
+    reference heights: 35px tall at the far end, 185px tall at the near end.
 
     The aspect-ratio check is a heuristic, not a fix for the underlying cause
     (a small YOLO model occasionally misclassifying an elongated object, like a
@@ -169,7 +168,7 @@ class PerspectiveSizeFilter:
         self.max_aspect = max_aspect  # width/height upper bound (too-flat/wide rejected)
 
     def expected_height_px(self, y):
-        # TODO: replace with your calibration's world-height -> pixel-height mapping
+        # TODO: replace with a world-height -> pixel-height mapping from the calibration
         y = np.clip(y, self.y_far, self.y_near)
         t = (y - self.y_far) / max(self.y_near - self.y_far, 1e-6)
         return self.h_far + t * (self.h_near - self.h_far)
@@ -190,12 +189,12 @@ class PerspectiveSizeFilter:
 
 
 # ----------------------------------------------------------------------------
-# 3b. Static removal-mask loader (matches your existing mask.png workflow)
+# 3b. Static removal-mask loader (RGBA mask image, e.g. mask.png)
 # ----------------------------------------------------------------------------
 def load_removal_mask(mask_path, alpha_threshold=128):
     """
     Loads a mask image where alpha > 0 marks pixels to EXCLUDE (e.g. sky/trees/
-    stands, and -- once you extend it -- the bench/sideline area too), and
+    stands, and optionally the bench/sideline area), and
     alpha == 0 means keep. Since the camera is stationary, this mask is drawn
     once and reused for the whole match/season.
 
@@ -376,5 +375,5 @@ if __name__ == "__main__":
 
     cap.release()
     all_tracks = tracker.interpolated_tracks()
-    # all_tracks[id] = {frame_idx: (x, y, w, h), ...} ready for your calibration
-    # to convert bbox -> world position.
+    # all_tracks[id] = {frame_idx: (x, y, w, h), ...}, ready to be converted
+    # from bbox to world position via the calibration.

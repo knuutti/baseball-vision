@@ -2,9 +2,9 @@
 # Edit values here rather than in the scripts. See config.py for the loader.
 
 paths:
-  empty_field: "empty_field.png"
-  mask: "mask3.png"          # extend this to cover bench/sideline area
-  video: "img/pesis_longer.mp4"
+  empty_field: "data/empty_field.png"
+  mask: "data/mask3.png"          # extend this to cover bench/sideline area
+  video: "path/to/match.mp4"  # placeholder: match footage is not included in this repository
   yolo_model: "yolov8s.pt"  # yolov8n/s/m/l -- bigger = more accurate, slower
 
 sampling:
@@ -16,7 +16,7 @@ background_model:
   max_frames: 180              # rolling buffer size for the median background
 
 foreground_detector:
-  # derived from real pixel samples on this field (see conversation history):
+  # derived from pixel samples of empty_field.png and game frames:
   # clay ref ~ H8-10 S90-100 V155-185; player kit shifts H by 5-45, V drops 40-90
   hue_shadow_tol: 6            # shadow hue stays within this of background hue
   sat_shadow_tol: 25           # shadow saturation stays within this of background
@@ -30,7 +30,7 @@ shadow_checker:
   min_changed_fraction: 0.05   # below this, not enough signal to judge -> keep
 
 size_filter:
-  # TODO: replace with your real calibration's world<->pixel height mapping;
+  # TODO: replace with a world<->pixel height mapping from the calibration;
   # these two points (35px far / 185px near) are a rough linear stand-in
   y_far: 200
   h_far: 35
@@ -64,13 +64,13 @@ yolo:
   overlap: 0.25                  # fraction of tile_size overlapped between adjacent tiles
   conf_thresh: 0.25
   person_class_id: 0             # COCO class 0 = "person"
-  device: "cpu"
+  device: "cuda"
   cross_tile_nms_iou: 0.4        # merges duplicate detections across tile boundaries
   containment_thresh: 0.8        # suppress a box if this much of its area sits inside
                                   # a higher-confidence box (fixes head-inside-torso etc.)
   gpu_batch_size: 16              # max tile images per model.predict() forward pass in detect_batch()
 
 video_processing:
-  frame_stride: 500                 # process every Nth frame (60fps video, stride 5 -> 12 samples/s)
+  frame_stride: 5                 # process every Nth frame (60fps video, stride 5 -> 12 samples/s)
   frame_batch_size: 8              # sampled frames accumulated before one detect_batch() call
   out_prefix: "out/bbox_timeseries" # writes <out_prefix>_frames.parquet, _detections.parquet, _meta.json

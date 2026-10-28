@@ -1,3 +1,12 @@
 .venv/
 __pycache__/
 *.pt
+.venv_test/
+.vscode/
+*.mp4
+
+# outputs written to the working directory by the scripts in src/
+/yolo_detections_overlay.png
+/tracking_animation.gif
+prediction_previews/
+tracking_preview/

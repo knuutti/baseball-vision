@@ -1,0 +1,20 @@
+# Core pipeline (detection, time series extraction)
+ultralytics          # imports as `ultralytics`; pulls in torch
+opencv-python        # imports as `cv2`
+numpy
+pandas
+pyarrow              # Parquet backend for pandas.to_parquet
+pyyaml               # imports as `yaml`
+tqdm
+
+# Tracking (object_tracking.py)
+scipy                # scipy.optimize.linear_sum_assignment (RANSAC + Hungarian tracker)
+supervision          # imports as `supervision`; detection container for ByteTrack
+trackers             # ByteTrack implementation; needs Python >= 3.10
+imageio              # GIF output
+
+# Team classification (team_classifier.py, KNNRoleClassifier)
+scikit-learn         # imports as `sklearn`
+
+# Notebooks
+matplotlib

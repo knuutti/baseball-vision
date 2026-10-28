@@ -35,7 +35,7 @@ leaning on one shared motion prior for everyone. This script is a reasonable
 stepping stone toward that, not a replacement for it.
 
 Run:
-    python object_tracking.py
+    python src/object_tracking.py
 """
 
 import os
@@ -310,8 +310,8 @@ def build_tracks_with_bytetrack(frames_boxes, frame_indices, frame_rate=5,
     wiring a custom detector into established MOT algorithms (SORT, ByteTrack,
     OC-SORT, BoT-SORT) via the shared `supervision.Detections` format, rather
     than reaching into ultralytics' internal tracker classes directly (which
-    aren't really meant to be driven manually -- people online had to
-    reverse-engineer undocumented attribute access to do it).
+    are not designed to be driven manually and need undocumented attribute
+    access).
 
     Why this is the recommended path over the hand-rolled RANSAC+Hungarian
     tracker above, for anything beyond a demo: battle-tested, benchmarked
@@ -319,7 +319,7 @@ def build_tracks_with_bytetrack(frames_boxes, frame_indices, frame_rate=5,
     next position from its own motion history, rather than everyone leaning
     on one shared RANSAC-estimated motion prior); and ByteTrack's core idea of
     still trying to associate LOW-confidence detections instead of discarding
-    them outright -- directly relevant to your case, since a partially
+    them outright -- relevant here, since a partially
     occluded player often still produces a box, just a lower-confidence one,
     rather than no box at all.
 
@@ -327,16 +327,15 @@ def build_tracks_with_bytetrack(frames_boxes, frame_indices, frame_rate=5,
 
     NOTE: constructor parameter names have changed between versions of this
     package (e.g. minimum_matching_threshold -> minimum_iou_threshold at some
-    point) -- if you hit a TypeError about an unexpected keyword argument,
-    check `help(ByteTrackTracker.__init__)` in your installed version rather
-    than assuming this signature is current; the error message itself is
-    usually enough (it suggested the fix directly when this happened).
+    point). A TypeError about an unexpected keyword argument means the
+    installed version uses different names; check
+    `help(ByteTrackTracker.__init__)` for the current signature.
 
-    frame_rate: pass your EFFECTIVE sampling rate here (e.g. source video fps
-    / frame_stride), not the source video's raw fps. lost_track_buffer and
-    related internals are frame-count budgets against whatever sequence you
-    actually feed the tracker -- here, your sparsely sampled frames, not
-    the original continuous video.
+    frame_rate: the EFFECTIVE sampling rate (e.g. source video fps /
+    frame_stride), not the source video's raw fps. lost_track_buffer and
+    related internals are frame-count budgets against the sequence actually
+    fed to the tracker -- here, the sparsely sampled frames, not the original
+    continuous video.
 
     Returns the same shape as SimpleTrackBuilder.history:
     {track_id: {frame_idx: (x, y, w, h, conf)}}
@@ -384,14 +383,6 @@ def _track_color(track_id):
     return tuple(int(v) for v in rng.integers(60, 255, size=3))
 
 
-# ----------------------------------------------------------------------------
-# Visualization
-# ----------------------------------------------------------------------------
-def _track_color(track_id):
-    rng = np.random.default_rng(track_id * 2654435761 % (2**32))  # deterministic per id
-    return tuple(int(v) for v in rng.integers(60, 255, size=3))
-
-
 def _bottom_left(box):
     x, y, w, h = box[:4]
     return (x, y + h)
@@ -424,7 +415,7 @@ def draw_tracks(frames, history, output_dir="tracking_preview", trail_length=10)
     last `trail_length` bottom-left corner positions (fewer if the track is
     younger than that, or has gaps from missed frames). A track still shows
     its trail on a frame where it wasn't detected (e.g. briefly occluded) as
-    long as it has at least one point within the trail window, so you can see
+    long as it has at least one point within the trail window, which shows
     the tracker bridging the gap rather than the trail just vanishing.
 
     Returns the list of rendered frames (BGR arrays, same order as `frames`)
@@ -463,8 +454,7 @@ def draw_tracks(frames, history, output_dir="tracking_preview", trail_length=10)
 
 def compile_animation(rendered_frames, output_path="tracking_animation.gif", fps=3):
     """
-    Compiles the annotated frames into a single animation you can actually
-    watch/share, rather than flipping through stills one by one. Defaults to
+    Compiles the annotated frames into a single animation. Defaults to
     GIF (via imageio) since it's viewable without a video player; pass an
     output_path ending in .mp4 for a video file instead (via cv2.VideoWriter).
 
@@ -548,11 +538,11 @@ if __name__ == "__main__":
     frames_boxes = detect_boxes_per_frame(frames, detector, valid_mask, shadow_checker, ref_bgr, size_filter)
     frame_indices = [idx for idx, _ in frames]
 
-    if TRACKING_BACKEND == "custom":
+    if TRACKING_BACKEND == "bytetrack":
         cap = cv2.VideoCapture(cfg.paths.video)
         source_fps = cap.get(cv2.CAP_PROP_FPS)
         cap.release()
-        effective_fps = max(int(round(source_fps / FRAME_STRIDE)), 1)  # your sampled sequence's own rate
+        effective_fps = max(int(round(source_fps / FRAME_STRIDE)), 1)  # effective rate of the sampled sequence
         history = build_tracks_with_bytetrack(frames_boxes, frame_indices, frame_rate=effective_fps)
     else:
         builder = SimpleTrackBuilder(max_missed=2)

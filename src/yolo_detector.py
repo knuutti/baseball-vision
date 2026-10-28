@@ -2,10 +2,11 @@
 YOLOv8-based player detection with tiled inference, for comparison against the
 background-subtraction pipeline in player_detection_pipeline.py.
 
-Run this on your GPU machine (needs internet access once, to pull the model):
+Intended to run on a CUDA GPU. Needs internet access once, so ultralytics can
+download the model weights:
     pip install ultralytics
 
-Why tiled inference: your far-field players are ~35px tall in a 1920x1080 frame.
+Why tiled inference: far-field players are ~35px tall in a 1920x1080 frame.
 YOLO models are typically trained/run at ~640px input, meaning a full-frame
 resize alone can shrink a 35px player down to ~12px -- often below reliable
 detection size. Slicing the frame into overlapping tiles and running inference
@@ -301,10 +302,10 @@ if __name__ == "__main__":
     from player_detection_pipeline import resize_to_match
 
     ref = cv2.imread(cfg.paths.empty_field, cv2.IMREAD_UNCHANGED)[:, :, :3]
-    frame = cv2.imread("game_frame_3.jpeg", cv2.IMREAD_UNCHANGED)[:, :, :3]  # swap for your actual frame source
+    frame = cv2.imread("game_frame_3.jpeg", cv2.IMREAD_UNCHANGED)[:, :, :3]  # example frame; replace with another frame source as needed
     # guards against empty_field.png/mask.png being a slightly different
-    # resolution than your actual video frames (happened once already --
-    # a few pixels off breaks every pixel-wise comparison in this pipeline)
+    # resolution than the video frames (a few pixels off breaks every
+    # pixel-wise comparison in this pipeline)
     ref = resize_to_match(ref, frame.shape[:2])
     valid_mask = resize_to_match(valid_mask.astype(np.uint8), frame.shape[:2], cv2.INTER_NEAREST).astype(bool)
     start_time = time.time()
