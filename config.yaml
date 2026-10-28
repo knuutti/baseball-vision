@@ -74,3 +74,11 @@ video_processing:
   frame_stride: 5                 # process every Nth frame (60fps video, stride 5 -> 12 samples/s)
   frame_batch_size: 8              # sampled frames accumulated before one detect_batch() call
   out_prefix: "out/bbox_timeseries" # writes <out_prefix>_frames.parquet, _detections.parquet, _meta.json
+
+field_mapping:
+  image_points: "data/calibration_points_2d.csv"  # pixel x,y of field markings (picked in field_analysis.ipynb)
+  field_points: "data/calibration_points.csv"     # the same markings in field coordinates (z = 0)
+  calib_image_hw: [1078, 1917]                    # resolution of the image the points were picked on
+  extent_x: [-31, 31]                             # bird's-eye canvas range in field units
+  extent_y: [-14, 104]
+  pixels_per_unit: 9

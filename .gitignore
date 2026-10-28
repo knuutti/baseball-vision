@@ -8,5 +8,6 @@ __pycache__/
 # outputs written to the working directory by the scripts in src/
 /yolo_detections_overlay.png
 /tracking_animation.gif
+/birds_eye_view.png
 prediction_previews/
 tracking_preview/

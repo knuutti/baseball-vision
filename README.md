@@ -16,8 +16,12 @@ The camera covers the whole field, so far-field players are only about 35 px tal
 - **Classical baseline for comparison.** A rolling median background model with HSV-based shadow suppression and a perspective-aware size filter. In a side-by-side comparison on match footage it produced far more false positives (shadow slivers, graphic overlays) than YOLO, so YOLO is used downstream.
 - **Tracking.** Detections are linked across frames with ByteTrack (via the `trackers` package). An alternative, simpler matcher estimates the dominant motion with RANSAC and assigns boxes with the Hungarian algorithm. The labelling tool uses a greedy centroid tracker.
 - **Team and role classification.** Torso colour is sampled from foreground pixels only and represented in a chroma space (saturation·cos(hue), saturation·sin(hue), value), which keeps near-black and near-white kits distinguishable. Each track is classified once, from the median of its samples, by the nearest role prototype. A labelling tool collects labelled colour samples track by track; prototypes (or an optional k-NN classifier) are built from them.
-- **Field calibration.** `notebooks/field_analysis.ipynb` estimates a planar homography from marked image points and their field coordinates, which maps pixel coordinates onto the field plane. It is not yet connected to the detection pipeline: the size filter still uses a two-point linear placeholder.
+- **Field calibration and bird's-eye mapping.** Field markings were picked by hand in `notebooks/field_analysis.ipynb` and paired with their field coordinates, giving a planar homography from image pixels to the field plane. `src/field_mapping.py` maps each player's feet point (bottom centre of the box) through it, which gives field (x, y) positions. The size filter does not use the calibration yet; it still uses a two-point linear placeholder.
 - **Time series output.** Per-frame detections are saved as Parquet tables for downstream movement analysis.
+
+![Player boxes mapped onto the field plane](assets/birds_eye_view.png)
+
+*Detections from one frame mapped to field coordinates (grid every 10 field units, home base at y = 0). Players cut off by the bottom edge of the frame have no visible feet, so they map slightly too close to the camera.*
 
 ![Player tracks with motion trails](assets/tracking_animation.gif)
 
@@ -31,6 +35,7 @@ The camera covers the whole field, so far-field players are only about 35 px tal
 | `src/team_classifier.py` | Jersey colour features, prototype and k-NN role classifiers |
 | `src/labeling_tool.py` | Interactive tool for labelling players track by track |
 | `src/video_bbox_extraction.py` | Full-video detection to Parquet time series |
+| `src/field_mapping.py` | Maps boxes to field coordinates and renders the bird's-eye view |
 | `src/visualize_predictions.py` | Annotated overlays for visual checks |
 | `src/config.py`, `config.yaml` | Config loader, and all parameters in one place |
 | `data/` | Empty-field reference image, field mask, calibration points, labelled colour samples |
